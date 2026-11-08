@@ -420,14 +420,17 @@
   <script>
     (() => {
       const STORAGE_KEY = 'kyron-boards-v2';
+      const FIELD_COLOR = 'var(--field)';
+      const DARK_FIELD_ALTERNATIVE = '#9bc99e';
       const COLORS = [
         {name:'Wald', value:'#173e36'},
         {name:'Koralle', value:'#d7654d'},
         {name:'Sonne', value:'#e4c449'},
         {name:'Blatt', value:'#62936b'},
         {name:'Blau', value:'#587bb7'},
+        {name:'Salbei', value:DARK_FIELD_ALTERNATIVE},
         {name:'Kreide', value:'#fffdf8'},
-        {name:'Feld', value:'var(--field)'}
+        {name:'Feld', value:FIELD_COLOR}
       ];
       const trapInfo = {
         open: 'Du kannst die Art auch später einordnen oder deine eigene Beschreibung verwenden.',
@@ -450,7 +453,10 @@
       const setupScreen = $('#setup-screen');
       const boardScreen = $('#board-screen');
       const board = $('#board');
-      const resolveColor = color => color === 'var(--field)' ? getComputedStyle(board).backgroundColor : color;
+      const isDarkTheme = () => document.documentElement.dataset.theme === 'dark';
+      const resolveColor = color => color === FIELD_COLOR
+        ? (isDarkTheme() ? DARK_FIELD_ALTERNATIVE : getComputedStyle(board).backgroundColor)
+        : color;
       const canvas = $('#doodle-canvas');
       const ctx = canvas.getContext('2d');
       const tokenLayer = $('#token-layer');
@@ -487,6 +493,9 @@
         try { localStorage.setItem('kyron-theme', dark ? 'dark' : 'light'); }
         catch {}
         updateThemeToggle();
+        renderPalette();
+        renderTokens();
+        if (!boardScreen.hidden) drawStrokes();
       });
 
       function newId() { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`; }
@@ -686,14 +695,17 @@
       function renderPalette() {
         const row = $('#color-row');
         row.textContent = '';
+        const dark = isDarkTheme();
         const activeColor = mode === 'draw' ? drawingColor : selectedColor;
-        COLORS.forEach(color => {
+        const visibleActiveColor = dark && activeColor === FIELD_COLOR ? DARK_FIELD_ALTERNATIVE : activeColor;
+        const colors = dark ? COLORS.filter(color => color.value !== FIELD_COLOR) : COLORS;
+        colors.forEach(color => {
           const button = document.createElement('button');
           button.type = 'button';
           button.className = 'color-chip';
           button.style.setProperty('--chip', color.value);
           button.setAttribute('aria-label', `Farbe ${color.name}`);
-          button.setAttribute('aria-pressed', String(activeColor === color.value));
+          button.setAttribute('aria-pressed', String(visibleActiveColor === color.value));
           button.addEventListener('click', () => {
             if (mode === 'draw') {
               drawingColor = color.value;
@@ -730,8 +742,9 @@
           button.dataset.id = token.id;
           button.style.left = `${token.x}%`;
           button.style.top = `${token.y}%`;
-          button.style.setProperty('--token-color', token.color);
-          if (token.color === 'var(--field)') button.style.color = 'var(--ink)';
+          const darkFieldToken = isDarkTheme() && token.color === FIELD_COLOR;
+          button.style.setProperty('--token-color', darkFieldToken ? DARK_FIELD_ALTERNATIVE : token.color);
+          if (token.color === FIELD_COLOR) button.style.color = darkFieldToken ? '#173e36' : 'var(--ink)';
           button.setAttribute('aria-label', labelsVisible && token.label ? `${token.label}` : 'Neutraler Kreis');
           button.setAttribute('aria-pressed', String(selectedTokenId === token.id));
           if (selectedTokenId === token.id && (mode === 'move' || mode === 'place') && phase === 'edit') button.classList.add('selected');
