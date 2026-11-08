@@ -95,7 +95,9 @@
     }
     .quiet-button:hover { background: var(--hover); }
     .theme-toggle { width: 40px; min-width: 40px; padding: 0; display: grid; place-items: center; }
-    .theme-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .update-toggle { min-width: 40px; padding: 0 11px; display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
+    .theme-toggle svg, .update-toggle svg { width: 18px; height: 18px; flex: 0 0 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .update-toggle:disabled { cursor: wait; opacity: .6; }
     .theme-icon-sun { display: none; }
     :root[data-theme="dark"] .theme-icon-moon { display: none; }
     :root[data-theme="dark"] .theme-icon-sun { display: block; }
@@ -155,6 +157,7 @@
     .label-toggle[aria-pressed="true"] { background: var(--navy); color: white; border-color: var(--navy); }
     .save-button { border: 0; background: var(--navy); color: white; border-radius: 999px; min-height: 42px; padding: 0 16px; font-size: 13px; font-weight: 680; }
     .topic-strip { min-height: 28px; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+    #trap-chip { display: none; }
     .topic-strip strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); font-size: 13px; }
     .board-wrap { width: 100%; display: flex; justify-content: center; }
     .board-stage { position: relative; width: min(100%, 520px); }
@@ -275,7 +278,9 @@
       .brand { font-size: 14px; }
       .brand span { display: none; }
       .header-actions { gap: 5px; }
-      .header-actions .quiet-button:not(.theme-toggle) { padding-left: 9px; padding-right: 9px; font-size: 12px; }
+      .header-actions .quiet-button:not(.theme-toggle):not(.update-toggle) { padding-left: 9px; padding-right: 9px; font-size: 12px; }
+      .update-toggle { width: 40px; padding: 0; }
+      .update-label { display: none; }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
@@ -292,6 +297,10 @@
     <div class="header-actions">
       <button class="quiet-button" id="trap-help-open" type="button" aria-haspopup="dialog">Fallenarten</button>
       <button class="quiet-button" id="boards-open" type="button">Boards</button>
+      <button class="quiet-button update-toggle" id="update-app" type="button" aria-label="App aktualisieren" title="App aktualisieren">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9A7 7 0 0 1 18 6l2 6M4 12l2 6a7 7 0 0 0 12.4-3"/></svg>
+        <span class="update-label">Update</span>
+      </button>
       <button class="quiet-button theme-toggle" id="theme-toggle" type="button" aria-pressed="false" aria-label="Dunklen Modus aktivieren" title="Dunklen Modus aktivieren">
         <svg class="theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.6 8.6 0 1 0 20.2 15.4Z"/></svg>
         <svg class="theme-icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
@@ -1086,6 +1095,56 @@
         savedBoardsDialog.showModal();
       }
       function openBoards() { renderBoardList(); savedBoardsDialog.showModal(); }
+      $('#update-app').addEventListener('click', async () => {
+        if (location.protocol === 'file:' || !('serviceWorker' in navigator)) {
+          showToast('Öffne die installierte Web-App, um nach Updates zu suchen.');
+          return;
+        }
+        if (!navigator.onLine) {
+          showToast('Zum Aktualisieren bitte eine Internetverbindung herstellen.');
+          return;
+        }
+        const button = $('#update-app');
+        button.disabled = true;
+        let reloadStarted = false;
+        const reloadOnControllerChange = () => {
+          reloadStarted = true;
+          window.location.reload();
+        };
+        try {
+          const registration = await navigator.serviceWorker.getRegistration()
+            || await navigator.serviceWorker.register('./sw.js', {scope:'./'});
+          navigator.serviceWorker.addEventListener('controllerchange', reloadOnControllerChange, {once:true});
+          showToast('Suche nach Updates …');
+          await registration.update();
+          const worker = registration.installing;
+          if (worker) {
+            await new Promise((resolve, reject) => {
+              const timeout = setTimeout(() => reject(new Error('update-timeout')), 15000);
+              const checkState = () => {
+                if (worker.state === 'activated') {
+                  clearTimeout(timeout);
+                  resolve();
+                } else if (worker.state === 'redundant') {
+                  clearTimeout(timeout);
+                  reject(new Error('update-failed'));
+                }
+              };
+              worker.addEventListener('statechange', checkState);
+              checkState();
+            });
+          }
+          if (!reloadStarted) {
+            reloadStarted = true;
+            window.location.reload();
+          }
+        } catch {
+          navigator.serviceWorker.removeEventListener('controllerchange', reloadOnControllerChange);
+          showToast('Update nicht möglich. Prüfe die Verbindung und versuche es erneut.');
+        } finally {
+          if (!reloadStarted) button.disabled = false;
+        }
+      });
       $('#boards-open').addEventListener('click', openBoards);
       $('#boards-close').addEventListener('click', () => savedBoardsDialog.close());
       $('#labels-close').addEventListener('click', returnToBoards);
