@@ -22,6 +22,7 @@
       --line: #d4cbbd;
       --field: #dfe6dc;
       --field-edge: #c8d4c9;
+      --first-stone: #173e36;
       --clay: #b9573c;
       --clay-dark: #8d402d;
       --navy: #24364f;
@@ -45,6 +46,7 @@
       --line: #445148;
       --field: #293a32;
       --field-edge: #506459;
+      --first-stone: #83cfac;
       --clay: #a94c34;
       --clay-dark: #e09a7c;
       --navy: #263a4e;
@@ -99,6 +101,15 @@
     :root[data-theme="dark"] .theme-icon-sun { display: block; }
 
     .screen { width: min(100%, 680px); margin: 0 auto; padding: 24px 20px 34px; }
+    #setup-screen { padding-top: 14px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+    #setup-screen .stage-label { margin-bottom: 7px; }
+    #setup-screen h1 { margin-bottom: 8px; font-size: clamp(30px, 7.4vw, 40px); }
+    #setup-screen .lede { margin-bottom: 12px; font-size: 14px; line-height: 1.4; }
+    #setup-screen .form-block { margin: 10px 0; }
+    #setup-screen input, #setup-screen select { min-height: 44px; padding: 10px 12px; }
+    #setup-screen .trap-summary { margin-top: 6px; font-size: 12px; }
+    #setup-screen .primary { min-height: 48px; }
+    #setup-screen .privacy-note { margin-top: 8px; }
     .stage-label { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
     h1 { max-width: 13ch; margin: 0 0 12px; font-size: clamp(32px, 8vw, 48px); line-height: 1.03; letter-spacing: -.045em; font-weight: 680; text-wrap: balance; }
     h2 { margin: 0 0 8px; font-size: 20px; line-height: 1.2; letter-spacing: -.025em; }
@@ -118,9 +129,6 @@
     input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
     textarea { min-height: 100px; resize: vertical; }
     .trap-summary { margin: 9px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
-    .more-details { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 12px 0; }
-    .more-details summary { cursor: pointer; font-size: 14px; font-weight: 650; }
-    .more-details textarea { margin-top: 12px; }
     .primary {
       width: 100%;
       min-height: 52px;
@@ -258,6 +266,9 @@
       .tool-dock { border: 1px solid var(--line); border-radius: 16px 16px 0 0; margin-left: 0; margin-right: 0; }
     }
     @media (max-height: 740px) and (max-width: 760px) {
+      #setup-screen { padding-top: 10px; }
+      #setup-screen .form-block { margin: 8px 0; }
+      #setup-screen .lede { margin-bottom: 9px; }
       .board { width: min(100%, 52vh); }
       .board-screen { padding-top: 10px; }
       .tool-dock { margin-top: 8px; padding-top: 8px; }
@@ -295,7 +306,7 @@
   <main id="setup-screen" class="screen">
     <p class="stage-label">Thema und Einstimmung</p>
     <h1>Was möchtest du bewegen?</h1>
-    <p class="lede">Nimm dir einen Moment zum Einfühlen. Eine kurze Überschrift genügt; mehr Kontext kannst du ergänzen, musst du aber nicht.</p>
+    <p class="lede">Nimm dir einen Moment zum Einfühlen. Eine kurze Überschrift genügt; die Fallenart kannst du später einordnen.</p>
 
     <div class="form-block">
       <label class="field-label" for="trap-type">Welche Fallenart passt gerade? <span class="optional">(optional)</span></label>
@@ -313,16 +324,6 @@
       <label class="field-label" for="topic">Kurze Überschrift für dein Thema</label>
       <input id="topic" type="text" maxlength="100" placeholder="Zum Beispiel: Eine Entscheidung, die ansteht">
     </div>
-
-    <div class="form-block">
-      <label class="field-label" for="intention">Eine Absicht für die Übung <span class="optional">(optional)</span></label>
-      <input id="intention" type="text" maxlength="120" placeholder="Oder die Absicht, ohne feste Absicht zu beginnen">
-    </div>
-
-    <details class="more-details">
-      <summary>Mehr zum Thema notieren <span class="optional">(optional)</span></summary>
-      <textarea id="details" maxlength="1000" placeholder="Nur wenn es dir hilft. Du kannst das Thema auch offen und ungenau lassen."></textarea>
-    </details>
 
     <div class="form-block">
       <label class="field-label" for="board-name-setup">Name für dein Board</label>
@@ -420,10 +421,12 @@
   <script>
     (() => {
       const STORAGE_KEY = 'kyron-boards-v2';
+      const MAX_STONES = 4;
       const FIELD_COLOR = 'var(--field)';
       const DARK_FIELD_ALTERNATIVE = '#9bc99e';
+      const FIRST_STONE_COLOR = 'var(--first-stone)';
       const COLORS = [
-        {name:'Wald', value:'#173e36'},
+        {name:'Wald', value:FIRST_STONE_COLOR},
         {name:'Koralle', value:'#d7654d'},
         {name:'Sonne', value:'#e4c449'},
         {name:'Blatt', value:'#62936b'},
@@ -454,9 +457,13 @@
       const boardScreen = $('#board-screen');
       const board = $('#board');
       const isDarkTheme = () => document.documentElement.dataset.theme === 'dark';
-      const resolveColor = color => color === FIELD_COLOR
-        ? (isDarkTheme() ? DARK_FIELD_ALTERNATIVE : getComputedStyle(board).backgroundColor)
-        : color;
+      const resolveColor = color => {
+        if (color === FIELD_COLOR) return isDarkTheme() ? DARK_FIELD_ALTERNATIVE : getComputedStyle(board).backgroundColor;
+        if (color === FIRST_STONE_COLOR || (isDarkTheme() && color === '#173e36')) {
+          return getComputedStyle(document.documentElement).getPropertyValue('--first-stone').trim();
+        }
+        return color;
+      };
       const canvas = $('#doodle-canvas');
       const ctx = canvas.getContext('2d');
       const tokenLayer = $('#token-layer');
@@ -505,8 +512,6 @@
           title: 'Mein Übungsfeld',
           trap: 'open',
           topic: '',
-          intention: '',
-          details: '',
           resumeMoving: false,
           tokens: [],
           strokes: [],
@@ -514,11 +519,11 @@
         };
       }
       function createStartingTokens() {
-        return Array.from({length:4}, () => ({id:newId(), x:50, y:50, color:'#fffdf8', label:'', autoLabel:true}));
+        return Array.from({length:MAX_STONES}, () => ({id:newId(), x:50, y:50, color:'#fffdf8', label:'', autoLabel:true}));
       }
       function applyTetrahedronPoints(type, reposition = true, tokenList = state.tokens) {
-        const tokens = tokenList.slice(0,4);
-        if (tokens.length !== 4) return;
+        const tokens = tokenList.slice(0,MAX_STONES);
+        if (tokens.length !== MAX_STONES) return;
         const outsideId = trapPointIds[type];
         if (!outsideId) {
           const pointIds = tetrahedronPoints.map(point => point.id);
@@ -558,10 +563,25 @@
           }
         });
       }
+      function limitBoardStones(boards) {
+        if (!Array.isArray(boards)) return {boards:[], changed:false};
+        let changed = false;
+        boards.forEach(board => {
+          if (Array.isArray(board?.tokens) && board.tokens.length > MAX_STONES) {
+            board.tokens = board.tokens.slice(0,MAX_STONES);
+            changed = true;
+          }
+        });
+        return {boards, changed};
+      }
       function getSavedBoards() {
         try {
           const stored = localStorage.getItem(STORAGE_KEY);
-          if (stored !== null) return JSON.parse(stored);
+          if (stored !== null) {
+            const normalized = limitBoardStones(JSON.parse(stored));
+            if (normalized.changed) localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized.boards));
+            return normalized.boards;
+          }
           for (const key of Object.keys(localStorage)) {
             let candidate;
             try { candidate = JSON.parse(localStorage.getItem(key)); }
@@ -572,15 +592,16 @@
               Array.isArray(board.tokens) && Array.isArray(board.strokes)
             );
             if (!isBoardList) continue;
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(candidate));
+            const normalized = limitBoardStones(candidate);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized.boards));
             localStorage.removeItem(key);
-            return candidate;
+            return normalized.boards;
           }
           return [];
         } catch { return []; }
       }
       function storeBoards(boards) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(boards));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(limitBoardStones(boards).boards));
       }
       function showToast(message) {
         const toast = $('#toast');
@@ -594,7 +615,7 @@
         const changed = type !== state.trap;
         state.trap = type;
         $('#trap-summary').textContent = trapInfo[type];
-        if (changed && state.tokens.length >= 4) applyTetrahedronPoints(type, true);
+        if (changed && state.tokens.length >= MAX_STONES) applyTetrahedronPoints(type, true);
       }
       $('#trap-type').addEventListener('change', updateTrapHint);
       updateTrapHint();
@@ -604,15 +625,11 @@
       function collectSetup() {
         state.trap = $('#trap-type').value;
         state.topic = $('#topic').value.trim();
-        state.intention = $('#intention').value.trim();
-        state.details = $('#details').value.trim();
         state.title = $('#board-name-setup').value.trim() || (state.topic ? state.topic.slice(0,60) : 'Mein Übungsfeld');
       }
       function applyStateToSetup() {
         $('#trap-type').value = state.trap || 'open';
         $('#topic').value = state.topic || '';
-        $('#intention').value = state.intention || '';
-        $('#details').value = state.details || '';
         $('#board-name-setup').value = state.title || '';
         updateTrapHint();
       }
@@ -655,6 +672,8 @@
         if (mode !== next) labelsVisible = false;
         mode = next;
         boardScreen.dataset.mode = mode;
+        $('#board-name').hidden = mode === 'move';
+        state.tokens = state.tokens.slice(0,MAX_STONES);
         if ((next === 'move' || next === 'place') && state.tokens.length === 0) {
           state.tokens = createStartingTokens();
           applyTetrahedronPoints(state.trap, true);
@@ -666,7 +685,7 @@
         board.dataset.mode = mode;
         const captions = {
           draw: 'Die Steine sind ausgeblendet. Wähle eine Farbe und kritzele los; beim Wechsel zu „Setzen“ erscheinen sie wieder.',
-          place: 'Die Vorlage mit drei Steinen im Dreieck und einem daneben ist da. Tippe ins Feld, um weitere Kreise zu setzen.',
+          place: 'Die vier Steine sind gesetzt. Wähle sie an, um ihre Farbe festzulegen.',
           move: 'Ziehe die Steine frei über das Feld. Ihre Beschriftungen bleiben verborgen, solange du sie nicht einblendest.'
         };
         if (phase === 'edit') $('#board-caption').textContent = captions[mode];
@@ -698,7 +717,8 @@
         const dark = isDarkTheme();
         const activeColor = mode === 'draw' ? drawingColor : selectedColor;
         const visibleActiveColor = dark && activeColor === FIELD_COLOR ? DARK_FIELD_ALTERNATIVE : activeColor;
-        const colors = dark ? COLORS.filter(color => color.value !== FIELD_COLOR) : COLORS;
+        const colors = (dark ? COLORS.filter(color => color.value !== FIELD_COLOR) : COLORS)
+          .map(color => dark && color.value === FIRST_STONE_COLOR ? {...color, name:'Mint'} : color);
         colors.forEach(color => {
           const button = document.createElement('button');
           button.type = 'button';
@@ -742,8 +762,11 @@
           button.dataset.id = token.id;
           button.style.left = `${token.x}%`;
           button.style.top = `${token.y}%`;
-          const darkFieldToken = isDarkTheme() && token.color === FIELD_COLOR;
-          button.style.setProperty('--token-color', darkFieldToken ? DARK_FIELD_ALTERNATIVE : token.color);
+          const dark = isDarkTheme();
+          const darkFieldToken = dark && token.color === FIELD_COLOR;
+          const darkLegacyFirstStone = dark && token.color === '#173e36';
+          const displayColor = darkFieldToken ? DARK_FIELD_ALTERNATIVE : darkLegacyFirstStone ? FIRST_STONE_COLOR : token.color;
+          button.style.setProperty('--token-color', displayColor);
           if (token.color === FIELD_COLOR) button.style.color = darkFieldToken ? '#173e36' : 'var(--ink)';
           button.setAttribute('aria-label', labelsVisible && token.label ? `${token.label}` : 'Neutraler Kreis');
           button.setAttribute('aria-pressed', String(selectedTokenId === token.id));
@@ -772,6 +795,10 @@
         return {x: Math.max(3,Math.min(97,(event.clientX-rect.left)/rect.width*100)), y: Math.max(3,Math.min(97,(event.clientY-rect.top)/rect.height*100))};
       }
       function addToken(point) {
+        if (state.tokens.length >= MAX_STONES) {
+          showToast('Es können höchstens vier Steine auf dem Feld liegen.');
+          return;
+        }
         const rect = board.getBoundingClientRect();
         const diameter = getTokenDiameter(rect.width);
         if (!tokenPositionIsClear(point.x,point.y,rect,diameter)) {
@@ -923,6 +950,7 @@
       });
 
       function saveBoard() {
+        state.tokens = state.tokens.slice(0,MAX_STONES);
         state.title = ($('#board-name').value || state.title || 'Mein Übungsfeld').trim();
         state.resumeMoving = mode === 'move';
         state.updated = Date.now();
@@ -942,6 +970,7 @@
       $('#save-board').addEventListener('click', saveBoard);
       function openBoard(saved) {
         state = structuredClone(saved);
+        state.tokens = (state.tokens || []).slice(0,MAX_STONES);
         selectedTokenId = null;
         const resumeMoving = Boolean(state.resumeMoving);
         phase = 'edit';
@@ -1085,8 +1114,6 @@
         selectedTokenId = null;
         applyStateToSetup();
         $('#topic').value = '';
-        $('#intention').value = '';
-        $('#details').value = '';
         $('#board-name-setup').value = 'Mein Übungsfeld';
         phase = 'setup';
         boardScreen.hidden = true;
