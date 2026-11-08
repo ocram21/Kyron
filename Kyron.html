@@ -1,0 +1,1094 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4efe5">
+  <meta name="description" content="Ein persönliches Feld zum freien Verschieben von Elementen.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <title>Kyron</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f4efe5;
+      --white: #fffdf8;
+      --ink: #173e36;
+      --muted: #53675e;
+      --line: #d4cbbd;
+      --field: #dfe6dc;
+      --field-edge: #c8d4c9;
+      --clay: #b9573c;
+      --clay-dark: #8d402d;
+      --navy: #24364f;
+      --hover: #ebe5da;
+      --tool-dock: #f4efe5f2;
+      --shadow: 0 12px 30px #233b2c18;
+      --sticky-header-offset: max(64px, calc(29px + env(safe-area-inset-top)));
+      font-family: "Avenir Next", Avenir, ui-sans-serif, system-ui, sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      background: var(--paper);
+      color: var(--ink);
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --paper: #171f1b;
+      --white: #242e28;
+      --ink: #edf1e9;
+      --muted: #b6c0b8;
+      --line: #445148;
+      --field: #293a32;
+      --field-edge: #506459;
+      --clay: #a94c34;
+      --clay-dark: #e09a7c;
+      --navy: #263a4e;
+      --hover: #2b3730;
+      --tool-dock: #171f1bf2;
+      --shadow: 0 12px 30px #0008;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; min-height: 100dvh; }
+    ::selection { color: var(--white); background: var(--ink); }
+    :focus-visible { outline: 3px solid var(--clay-dark); outline-offset: 3px; }
+    button, input, select, textarea { font: inherit; }
+    button { color: inherit; cursor: pointer; }
+    [hidden] { display: none !important; }
+
+    .app-header {
+      min-height: 64px;
+      padding: max(10px, env(safe-area-inset-top)) 18px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+      background: var(--paper);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .brand { font-size: 16px; font-weight: 740; letter-spacing: -.035em; }
+    .brand span { color: var(--muted); font-weight: 500; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .help-cards { display: grid; gap: 12px; }
+    .help-card { padding: 13px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); }
+    .help-card h3 { margin: 0 0 6px; font-size: 15px; }
+    .help-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .help-card p + p { margin-top: 8px; }
+    .help-note { margin: 14px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .quiet-button {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: transparent;
+      min-height: 40px;
+      padding: 0 15px;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 650;
+    }
+    .quiet-button:hover { background: var(--hover); }
+    .theme-toggle { width: 40px; min-width: 40px; padding: 0; display: grid; place-items: center; }
+    .theme-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .theme-icon-sun { display: none; }
+    :root[data-theme="dark"] .theme-icon-moon { display: none; }
+    :root[data-theme="dark"] .theme-icon-sun { display: block; }
+
+    .screen { width: min(100%, 680px); margin: 0 auto; padding: 24px 20px 34px; }
+    .stage-label { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+    h1 { max-width: 13ch; margin: 0 0 12px; font-size: clamp(32px, 8vw, 48px); line-height: 1.03; letter-spacing: -.045em; font-weight: 680; text-wrap: balance; }
+    h2 { margin: 0 0 8px; font-size: 20px; line-height: 1.2; letter-spacing: -.025em; }
+    .lede { max-width: 42ch; margin: 0 0 24px; color: var(--muted); font-size: 15px; line-height: 1.55; }
+    .form-block { margin: 20px 0; }
+    .field-label { display: block; margin: 0 0 7px; font-size: 14px; font-weight: 680; }
+    .optional { color: var(--muted); font-size: 12px; font-weight: 500; }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--white);
+      color: var(--ink);
+      padding: 13px 14px;
+      min-height: 48px;
+    }
+    input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
+    textarea { min-height: 100px; resize: vertical; }
+    .trap-summary { margin: 9px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .more-details { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 12px 0; }
+    .more-details summary { cursor: pointer; font-size: 14px; font-weight: 650; }
+    .more-details textarea { margin-top: 12px; }
+    .primary {
+      width: 100%;
+      min-height: 52px;
+      border: 0;
+      border-radius: 999px;
+      padding: 0 20px;
+      background: var(--clay);
+      color: #fffdf8;
+      font-weight: 700;
+      box-shadow: 0 4px 10px #52352c20;
+      transition: transform 160ms cubic-bezier(.16, 1, .3, 1), background 160ms ease;
+    }
+    .primary:hover:not(:disabled) { background: var(--clay-dark); transform: translateY(-1px); }
+    .primary:active:not(:disabled) { transform: translateY(0); }
+    .primary:disabled { background: #aaa197; cursor: not-allowed; box-shadow: none; }
+    .privacy-note { margin: 12px 0 0; color: var(--muted); font-size: 12px; text-align: center; }
+
+    .board-screen { width: min(100%, 760px); padding: 16px 16px calc(24px + env(safe-area-inset-bottom)); }
+    .board-bar { position: sticky; top: var(--sticky-header-offset); z-index: 6; display: grid; grid-template-areas: "back actions" "name name"; grid-template-columns: auto minmax(0,1fr); justify-content: space-between; gap: 8px; align-items: center; margin: -8px 0 10px; padding: 8px 0; background: var(--paper); }
+    .board-screen[data-mode="move"] #board-name,
+    .board-screen[data-mode="move"] #topic-strip { display: none; }
+    .board-screen[data-mode="move"] .board-bar { grid-template-areas: "back actions"; grid-template-columns: auto minmax(0,1fr); }
+    .board-bar-actions { grid-area: actions; display: flex; justify-content: flex-end; align-items: center; gap: 7px; }
+    #back-to-setup { grid-area: back; }
+    #board-name { grid-area: name; }
+    .label-toggle { min-height: 42px; padding: 0 10px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--ink); font-size: 12px; font-weight: 650; white-space: nowrap; }
+    .label-toggle[aria-pressed="true"] { background: var(--navy); color: white; border-color: var(--navy); }
+    .board-name { min-width: 0; min-height: 42px; padding: 9px 12px; font-size: 14px; font-weight: 650; }
+    .save-button { border: 0; background: var(--navy); color: white; border-radius: 999px; min-height: 42px; padding: 0 16px; font-size: 13px; font-weight: 680; }
+    .topic-strip { min-height: 28px; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+    .topic-strip strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); font-size: 13px; }
+    .board-wrap { width: 100%; display: flex; justify-content: center; }
+    .board-stage { position: relative; width: min(100%, 520px); }
+    .board {
+      width: min(100%, 520px, 58vh);
+      margin-inline: auto;
+      aspect-ratio: 1;
+      position: relative;
+      overflow: hidden;
+      border-radius: 5px;
+      background: var(--field);
+      outline: 1px solid var(--field-edge);
+      outline-offset: -1px;
+      box-shadow: var(--shadow);
+      touch-action: none;
+      user-select: none;
+    }
+    .board::after { content: ""; position: absolute; z-index: 3; inset: 12px; border: 1px solid #fff9; pointer-events: none; }
+    .doodle-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; touch-action: none; }
+    .token-layer { position: absolute; z-index: 2; inset: 0; pointer-events: none; }
+    .board[data-mode="draw"] .token-layer { visibility: hidden; }
+    .board[data-mode="draw"] .token-layer .token-label { visibility: hidden; }
+    .token {
+      --token-color: #fffdf8;
+      position: absolute;
+      width: clamp(42px, 13.3%, 57.4px);
+      aspect-ratio: 1;
+      border: 1px solid #23352d30;
+      border-radius: 50%;
+      padding: 3px;
+      background: var(--token-color);
+      box-shadow: 0 4px 10px #20352c26;
+      transform: translate(-50%,-50%);
+      display: grid;
+      place-items: center;
+      color: #172b24;
+      touch-action: none;
+      pointer-events: auto;
+      transition: opacity 140ms ease, scale 180ms cubic-bezier(.16,1,.3,1), outline-color 120ms ease;
+    }
+    .token-label { visibility: hidden; max-width: 100%; max-height: 100%; overflow: hidden; overflow-wrap: normal; word-break: normal; font-size: clamp(6px, 1.35vw, 7px); line-height: 1.08; font-weight: 700; text-align: center; pointer-events: none; }
+    .token.face-up .token-label { visibility: visible; }
+    .token.selected { outline: 3px solid var(--clay); outline-offset: 3px; }
+    .token.is-moving { opacity: 0; scale: .92; }
+    .board-caption { margin: 10px 4px 0; min-height: 2.8em; text-align: center; color: var(--muted); font-size: 12px; line-height: 1.4; }
+
+    .tool-dock {
+      position: sticky;
+      bottom: 0;
+      z-index: 5;
+      margin: 14px -16px 0;
+      padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+      background: var(--tool-dock);
+      border-top: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .mode-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-bottom: 10px; }
+    .mode-button { min-height: 42px; border: 1px solid var(--line); border-radius: 9px; background: var(--white); font-size: 13px; font-weight: 650; }
+    .mode-button[aria-pressed="true"] { background: var(--navy); color: white; border-color: var(--navy); }
+    .color-row { display: flex; align-items: center; gap: 10px; overflow-x: auto; padding: 4px 2px 8px; scrollbar-color: #9aa49b transparent; }
+    .palette-caption { margin: 0 0 1px; color: var(--muted); font-size: 11px; }
+    .color-chip { flex: 0 0 34px; width: 34px; height: 34px; border: 1px solid #46584d50; border-radius: 50%; background: var(--chip); }
+    .color-chip[aria-pressed="true"] { outline: 3px solid var(--clay); outline-offset: 2px; }
+    .apply-all { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; margin-left: auto; font-size: 12px; color: var(--muted); white-space: nowrap; }
+    .apply-all input { width: 17px; min-height: 17px; height: 17px; margin: 0; accent-color: var(--ink); }
+    .small-button { min-height: 40px; border: 1px solid var(--line); border-radius: 999px; padding: 0 14px; background: transparent; font-size: 12px; font-weight: 650; }
+    .dock-actions { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 9px; align-items: center; }
+    .dock-actions .primary { min-height: 48px; font-size: 14px; }
+    .secondary-link { border: 0; background: transparent; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; font-size: 12px; padding: 10px 2px; }
+    .move-copy { text-align: center; margin: 12px 0 0; color: var(--muted); font-size: 13px; line-height: 1.4; }
+
+    dialog { width: min(calc(100% - 28px), 520px); max-height: 82dvh; border: 0; border-radius: 16px; padding: 0; background: var(--paper); color: var(--ink); box-shadow: 0 24px 70px #16241c50; }
+    dialog::backdrop { background: #15251e77; }
+    .dialog-head { display: flex; justify-content: space-between; align-items: center; padding: 18px 18px 12px; border-bottom: 1px solid var(--line); }
+    .dialog-head h2 { margin: 0; }
+    .dialog-body { padding: 14px 18px 20px; overflow-y: auto; max-height: calc(82dvh - 70px); }
+    .board-list { display: grid; gap: 10px; }
+    .board-item { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; align-items: center; padding: 12px; border-bottom: 1px solid var(--line); }
+    .board-item strong { display: block; overflow-wrap: anywhere; }
+    .board-item small { display: block; margin-top: 4px; color: var(--muted); }
+    .board-item-actions { display: flex; gap: 6px; }
+    .board-item-actions { flex-wrap: wrap; justify-content: flex-end; }
+    .board-item-actions button { min-height: 38px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); padding: 0 10px; font-size: 12px; font-weight: 650; }
+    .board-item-actions .icon-button { width: 38px; min-width: 38px; padding: 0; display: grid; place-items: center; color: var(--muted); }
+    .board-item-actions .icon-button:hover { color: var(--clay-dark); background: #f3e5df; }
+    .board-item-actions .icon-button svg { width: 17px; height: 17px; }
+    .board-item-actions button:disabled { opacity: .45; cursor: not-allowed; }
+    .labels-editor-intro { margin: 0 0 14px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .labels-editor-list { display: grid; }
+    .label-editor-row { display: grid; grid-template-columns: 36px minmax(0,1fr); gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .label-editor-swatch { width: 34px; height: 34px; border: 1px solid #46584d50; border-radius: 50%; background: var(--token-color); box-shadow: 0 3px 8px #20352c20; }
+    .label-editor-row label { display: grid; gap: 5px; color: var(--muted); font-size: 12px; }
+    .label-editor-row input { min-height: 42px; padding: 9px 10px; font-size: 14px; }
+    .labels-editor-actions { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 8px; align-items: center; margin-top: 16px; }
+    .board-empty { margin: 4px 0 12px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+    .saved-note { color: var(--muted); font-size: 12px; margin: 14px 0 0; }
+    .toast { position: fixed; z-index: 30; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--navy); color: white; padding: 12px 16px; border-radius: 999px; font-size: 13px; box-shadow: var(--shadow); }
+
+    @media (min-width: 761px) {
+      .app-header { padding-left: max(24px, calc((100vw - 1080px)/2)); padding-right: max(24px, calc((100vw - 1080px)/2)); }
+      .screen { padding-top: 42px; }
+      .board-screen { padding-top: 20px; }
+      .board-bar { grid-template-areas: "back name actions"; grid-template-columns: auto minmax(0,1fr) auto; }
+      .board { width: min(52vw, 520px, 58vh); }
+      .tool-dock { border: 1px solid var(--line); border-radius: 16px 16px 0 0; margin-left: 0; margin-right: 0; }
+    }
+    @media (max-height: 740px) and (max-width: 760px) {
+      .board { width: min(100%, 52vh); }
+      .board-screen { padding-top: 10px; }
+      .tool-dock { margin-top: 8px; padding-top: 8px; }
+      .mode-button { min-height: 38px; }
+    }
+    @media (max-width: 360px) {
+      .app-header { padding-left: 12px; padding-right: 12px; }
+      .brand { font-size: 14px; }
+      .brand span { display: none; }
+      .header-actions { gap: 5px; }
+      .header-actions .quiet-button:not(.theme-toggle) { padding-left: 9px; padding-right: 9px; font-size: 12px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+  <script>
+    try { if (localStorage.getItem('kyron-theme') === 'dark') document.documentElement.dataset.theme = 'dark'; }
+    catch {}
+  </script>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">Kyron</div>
+    <div class="header-actions">
+      <button class="quiet-button" id="trap-help-open" type="button" aria-haspopup="dialog">Fallenarten</button>
+      <button class="quiet-button" id="boards-open" type="button">Boards</button>
+      <button class="quiet-button theme-toggle" id="theme-toggle" type="button" aria-pressed="false" aria-label="Dunklen Modus aktivieren" title="Dunklen Modus aktivieren">
+        <svg class="theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.6 8.6 0 1 0 20.2 15.4Z"/></svg>
+        <svg class="theme-icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="setup-screen" class="screen">
+    <p class="stage-label">Thema und Einstimmung</p>
+    <h1>Was möchtest du bewegen?</h1>
+    <p class="lede">Nimm dir einen Moment zum Einfühlen. Eine kurze Überschrift genügt; mehr Kontext kannst du ergänzen, musst du aber nicht.</p>
+
+    <div class="form-block">
+      <label class="field-label" for="trap-type">Welche Fallenart passt gerade? <span class="optional">(optional)</span></label>
+      <select id="trap-type">
+        <option value="open">Noch offen / eigene Beschreibung</option>
+        <option value="sehnsucht">Sehnsuchtsfalle</option>
+        <option value="ideologie">Ideologiefalle</option>
+        <option value="konfrontation">Konfrontationsfalle</option>
+        <option value="alltag">Alltagsfalle</option>
+      </select>
+      <p class="trap-summary" id="trap-summary">Du kannst die Art auch später einordnen oder deine eigene Beschreibung verwenden.</p>
+    </div>
+
+    <div class="form-block">
+      <label class="field-label" for="topic">Kurze Überschrift für dein Thema</label>
+      <input id="topic" type="text" maxlength="100" placeholder="Zum Beispiel: Eine Entscheidung, die ansteht">
+    </div>
+
+    <div class="form-block">
+      <label class="field-label" for="intention">Eine Absicht für die Übung <span class="optional">(optional)</span></label>
+      <input id="intention" type="text" maxlength="120" placeholder="Oder die Absicht, ohne feste Absicht zu beginnen">
+    </div>
+
+    <details class="more-details">
+      <summary>Mehr zum Thema notieren <span class="optional">(optional)</span></summary>
+      <textarea id="details" maxlength="1000" placeholder="Nur wenn es dir hilft. Du kannst das Thema auch offen und ungenau lassen."></textarea>
+    </details>
+
+    <div class="form-block">
+      <label class="field-label" for="board-name-setup">Name für dein Board</label>
+      <input id="board-name-setup" type="text" maxlength="60" placeholder="Mein Übungsfeld">
+    </div>
+
+    <button class="primary" id="to-board" type="button">Zum Feld gestalten</button>
+    <p class="privacy-note">Boards werden nur auf diesem Gerät gespeichert.</p>
+  </main>
+
+  <main id="board-screen" class="screen board-screen" hidden>
+    <div class="board-bar">
+      <button class="quiet-button" id="back-to-setup" type="button">‹ Thema</button>
+      <input class="board-name" id="board-name" type="text" maxlength="60" aria-label="Name dieses Boards">
+      <div class="board-bar-actions">
+        <button class="label-toggle" id="labels-toggle" type="button" aria-pressed="false" hidden>Texte zeigen</button>
+        <button class="save-button" id="save-board" type="button">Speichern</button>
+      </div>
+    </div>
+    <p class="topic-strip" id="topic-strip"><span id="trap-chip">Offen</span><strong id="topic-chip">Dein Thema</strong></p>
+
+    <div class="board-wrap">
+        <div class="board-stage">
+        <div class="board" id="board" aria-label="Quadratisches Feld mit Kreisen">
+          <canvas id="doodle-canvas" class="doodle-canvas" aria-label="Kritzelfläche"></canvas>
+          <div id="token-layer" class="token-layer"></div>
+        </div>
+        <p class="board-caption" id="board-caption">Wähle eine Farbe und kritzele los. Die Steine kommen im nächsten Schritt dazu.</p>
+      </div>
+    </div>
+
+    <div class="tool-dock" id="edit-dock">
+      <div class="mode-row" role="group" aria-label="Feldwerkzeug">
+        <button class="mode-button" id="mode-draw" type="button" aria-pressed="true">Kritzeln</button>
+        <button class="mode-button" id="mode-place" type="button" aria-pressed="false">Setzen</button>
+        <button class="mode-button" id="mode-move" type="button" aria-pressed="false">Schieben</button>
+      </div>
+      <p class="palette-caption" id="palette-caption">Farbe fürs Kritzeln</p>
+      <div class="color-row" id="color-row" aria-label="Farbe auswählen"></div>
+      <div class="dock-actions">
+        <button class="secondary-link" id="reset-field" type="button">Zurücksetzen</button>
+      </div>
+    </div>
+  </main>
+
+  <dialog id="boards-dialog">
+    <div class="dialog-head"><h2>Gespeicherte Boards</h2><button class="quiet-button" id="boards-close" type="button">Schließen</button></div>
+    <div class="dialog-body">
+      <div class="board-list" id="board-list"></div>
+      <button class="primary" id="new-board" type="button">Neues Board anlegen</button>
+      <p class="saved-note" id="saved-note">Boards und Notizen bleiben lokal in diesem Browser.</p>
+    </div>
+  </dialog>
+  <dialog id="labels-dialog" aria-labelledby="labels-dialog-title">
+    <div class="dialog-head"><h2 id="labels-dialog-title">Beschriftungen ändern</h2><button class="quiet-button" id="labels-close" type="button">Zurück</button></div>
+    <div class="dialog-body">
+      <p class="labels-editor-intro">Ändere die Texte, die auf den Steinen dieses Boards liegen. Ohne eigene Änderung bleiben die zugeordneten Wandlungstexte erhalten.</p>
+      <div class="labels-editor-list" id="labels-editor-list"></div>
+      <div class="labels-editor-actions">
+        <button class="secondary-link" id="labels-cancel" type="button">Abbrechen</button>
+        <button class="primary" id="labels-save" type="button">Speichern</button>
+      </div>
+    </div>
+  </dialog>
+  <dialog id="trap-help-dialog" aria-labelledby="trap-help-title">
+    <div class="dialog-head"><h2 id="trap-help-title">Welche Fallenart passt?</h2><button class="quiet-button" id="trap-help-close" type="button">Schließen</button></div>
+    <div class="dialog-body">
+      <div class="help-cards">
+        <article class="help-card">
+          <h3>Sehnsuchtsfalle</h3>
+          <p>Gefühle, Visionen und Pläne sind da – die Umsetzung ins Handeln fehlt.</p>
+          <p><strong>Wandlungspunkt:</strong> Tu was.</p>
+        </article>
+        <article class="help-card">
+          <h3>Ideologiefalle</h3>
+          <p>Ein Konzept wird umgesetzt; Mitgefühl und Empathie gehen unter.</p>
+          <p><strong>Wandlungspunkt:</strong> Fühle hin.</p>
+        </article>
+        <article class="help-card">
+          <h3>Konfrontationsfalle</h3>
+          <p>Äußere Einflüsse bestimmen die Reaktion; Souveränität und eigene Entscheidungen fehlen.</p>
+          <p><strong>Wandlungspunkt:</strong> Sei souverän.</p>
+        </article>
+        <article class="help-card">
+          <h3>Alltagsfalle</h3>
+          <p>Im Trott bleiben Inspiration und Kreativität auf der Strecke.</p>
+          <p><strong>Wandlungspunkt:</strong> Begeistere dich.</p>
+        </article>
+      </div>
+      <p class="help-note">Die Beschreibungen sind Orientierung, keine Diagnose. Mehrere können passen – oder keine davon. Kurzfassung aus „Die Fallen fallen“.</p>
+    </div>
+  </dialog>
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = 'kyron-boards-v2';
+      const COLORS = [
+        {name:'Wald', value:'#173e36'},
+        {name:'Koralle', value:'#d7654d'},
+        {name:'Sonne', value:'#e4c449'},
+        {name:'Blatt', value:'#62936b'},
+        {name:'Blau', value:'#587bb7'},
+        {name:'Kreide', value:'#fffdf8'},
+        {name:'Feld', value:'var(--field)'}
+      ];
+      const trapInfo = {
+        open: 'Du kannst die Art auch später einordnen oder deine eigene Beschreibung verwenden.',
+        sehnsucht: 'Wandlungspunkt: Tu was. Bring Sehnsucht und Planung in einen konkreten Handlungsschritt.',
+        ideologie: 'Wandlungspunkt: Fühle hin. Nimm Gefühle, Mitgefühl und Bedürfnisse wieder wahr.',
+        konfrontation: 'Wandlungspunkt: Sei souverän. Spüre deine eigene Position und wähle, worauf du dich einlässt.',
+        alltag: 'Wandlungspunkt: Begeistere dich. Öffne Raum für Vision, Inspiration und Neues.'
+      };
+      const tetrahedronPoints = [
+        {id:1, trap:'sehnsucht', label:'Tu was'},
+        {id:2, trap:'ideologie', label:'Fühle hin'},
+        {id:3, trap:'konfrontation', label:'Sei souverän'},
+        {id:4, trap:'alltag', label:'Begeistere dich'}
+      ];
+      const trapPointIds = {sehnsucht:1, ideologie:2, konfrontation:3, alltag:4};
+      const trianglePositions = [{x:38,y:27},{x:25,y:50},{x:51,y:50}];
+      const outsidePosition = {x:74,y:41};
+      const trapNames = {open:'Offen', sehnsucht:'Sehnsuchtsfalle', ideologie:'Ideologiefalle', konfrontation:'Konfrontationsfalle', alltag:'Alltagsfalle'};
+      const $ = selector => document.querySelector(selector);
+      const setupScreen = $('#setup-screen');
+      const boardScreen = $('#board-screen');
+      const board = $('#board');
+      const resolveColor = color => color === 'var(--field)' ? getComputedStyle(board).backgroundColor : color;
+      const canvas = $('#doodle-canvas');
+      const ctx = canvas.getContext('2d');
+      const tokenLayer = $('#token-layer');
+      const savedBoardsDialog = $('#boards-dialog');
+      const labelsDialog = $('#labels-dialog');
+      const trapHelpDialog = $('#trap-help-dialog');
+      const themeToggle = $('#theme-toggle');
+      let selectedColor = COLORS[0].value;
+      let drawingColor = COLORS[0].value;
+      let mode = 'draw';
+      let phase = 'setup';
+      let labelsVisible = false;
+      let state = freshState();
+      let editingLabelsBoardId = null;
+      let editingLabelsTokens = [];
+      let selectedTokenId = null;
+      let activeStroke = null;
+      let drawingPointerId = null;
+      let dragging = null;
+      let toastTimer;
+
+      function updateThemeToggle() {
+        const dark = document.documentElement.dataset.theme === 'dark';
+        const label = dark ? 'Hellen Modus aktivieren' : 'Dunklen Modus aktivieren';
+        themeToggle.setAttribute('aria-pressed', String(dark));
+        themeToggle.setAttribute('aria-label', label);
+        themeToggle.title = label;
+        $('meta[name="theme-color"]').content = dark ? '#171f1b' : '#f4efe5';
+      }
+      updateThemeToggle();
+      themeToggle.addEventListener('click', () => {
+        const dark = document.documentElement.dataset.theme !== 'dark';
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        try { localStorage.setItem('kyron-theme', dark ? 'dark' : 'light'); }
+        catch {}
+        updateThemeToggle();
+      });
+
+      function newId() { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`; }
+      function freshState() {
+        return {
+          id: null,
+          title: 'Mein Übungsfeld',
+          trap: 'open',
+          topic: '',
+          intention: '',
+          details: '',
+          resumeMoving: false,
+          tokens: [],
+          strokes: [],
+          updated: Date.now()
+        };
+      }
+      function createStartingTokens() {
+        return Array.from({length:4}, () => ({id:newId(), x:50, y:50, color:'#fffdf8', label:'', autoLabel:true}));
+      }
+      function applyTetrahedronPoints(type, reposition = true, tokenList = state.tokens) {
+        const tokens = tokenList.slice(0,4);
+        if (tokens.length !== 4) return;
+        const outsideId = trapPointIds[type];
+        if (!outsideId) {
+          const pointIds = tetrahedronPoints.map(point => point.id);
+          if (reposition || !tokens.every(token => pointIds.includes(token.vertexId))) {
+            tokens.forEach((token,index) => { token.vertexId = pointIds[index]; });
+          }
+          tokens.forEach(token => {
+            if (token.autoLabel !== false) token.label = '';
+            token.faceUp = Boolean(token.label);
+            token.role = '';
+            if (reposition) {
+              const position = tokens.indexOf(token) < 3 ? trianglePositions[tokens.indexOf(token)] : outsidePosition;
+              token.x = position.x;
+              token.y = position.y;
+            }
+          });
+          return;
+        }
+        const pointIds = tetrahedronPoints.map(point => point.id);
+        if (!tokens.every(token => pointIds.includes(token.vertexId))) {
+          tokens.forEach((token,index) => { token.vertexId = pointIds[index]; });
+        }
+        const trianglePoints = tetrahedronPoints.filter(point => point.id !== outsideId).sort((a,b) => a.id-b.id);
+        const positionsByPoint = new Map([[outsideId,outsidePosition]]);
+        trianglePoints.forEach((point,index) => positionsByPoint.set(point.id, trianglePositions[index]));
+        tokens.forEach(token => {
+          const point = tetrahedronPoints.find(item => item.id === token.vertexId);
+          if (!point) return;
+          if (token.autoLabel === undefined) token.autoLabel = !token.label;
+          if (token.autoLabel !== false) token.label = point.label;
+          token.faceUp = Boolean(token.label);
+          token.role = point.id === outsideId ? 'wandlungspunkt' : 'tetrahedron-vertex';
+          if (reposition) {
+            const position = positionsByPoint.get(point.id);
+            token.x = position.x;
+            token.y = position.y;
+          }
+        });
+      }
+      function getSavedBoards() {
+        try {
+          const stored = localStorage.getItem(STORAGE_KEY);
+          if (stored !== null) return JSON.parse(stored);
+          for (const key of Object.keys(localStorage)) {
+            let candidate;
+            try { candidate = JSON.parse(localStorage.getItem(key)); }
+            catch { continue; }
+            const isBoardList = Array.isArray(candidate) && candidate.length > 0 && candidate.every(board =>
+              board && typeof board.id === 'string' && typeof board.title === 'string' &&
+              typeof board.trap === 'string' && typeof board.resumeMoving === 'boolean' &&
+              Array.isArray(board.tokens) && Array.isArray(board.strokes)
+            );
+            if (!isBoardList) continue;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(candidate));
+            localStorage.removeItem(key);
+            return candidate;
+          }
+          return [];
+        } catch { return []; }
+      }
+      function storeBoards(boards) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(boards));
+      }
+      function showToast(message) {
+        const toast = $('#toast');
+        toast.textContent = message;
+        toast.hidden = false;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.hidden = true, 2400);
+      }
+      function updateTrapHint() {
+        const type = $('#trap-type').value;
+        const changed = type !== state.trap;
+        state.trap = type;
+        $('#trap-summary').textContent = trapInfo[type];
+        if (changed && state.tokens.length >= 4) applyTetrahedronPoints(type, true);
+      }
+      $('#trap-type').addEventListener('change', updateTrapHint);
+      updateTrapHint();
+      $('#trap-help-open').addEventListener('click', () => trapHelpDialog.showModal());
+      $('#trap-help-close').addEventListener('click', () => trapHelpDialog.close());
+
+      function collectSetup() {
+        state.trap = $('#trap-type').value;
+        state.topic = $('#topic').value.trim();
+        state.intention = $('#intention').value.trim();
+        state.details = $('#details').value.trim();
+        state.title = $('#board-name-setup').value.trim() || (state.topic ? state.topic.slice(0,60) : 'Mein Übungsfeld');
+      }
+      function applyStateToSetup() {
+        $('#trap-type').value = state.trap || 'open';
+        $('#topic').value = state.topic || '';
+        $('#intention').value = state.intention || '';
+        $('#details').value = state.details || '';
+        $('#board-name-setup').value = state.title || '';
+        updateTrapHint();
+      }
+      $('#to-board').addEventListener('click', () => {
+        collectSetup();
+        if (!state.topic) {
+          $('#topic').setCustomValidity('Gib eine kurze Überschrift für dein Thema ein.');
+          $('#topic').reportValidity();
+          $('#topic').focus();
+          return;
+        }
+        $('#topic').setCustomValidity('');
+        phase = 'edit';
+        setupScreen.hidden = true;
+        boardScreen.hidden = false;
+        $('#trap-help-open').hidden = true;
+        $('#edit-dock').hidden = false;
+        $('#topic-strip').hidden = false;
+        $('#board-name').value = state.title;
+        $('#trap-chip').textContent = trapNames[state.trap] || 'Offen';
+        $('#topic-chip').textContent = state.topic;
+        canvas.style.pointerEvents = 'auto';
+        setMode('draw');
+        renderTokens();
+        requestAnimationFrame(resizeCanvas);
+      });
+      $('#back-to-setup').addEventListener('click', () => {
+        if (phase !== 'edit') return;
+        state.title = $('#board-name').value.trim() || state.title;
+        state.resumeMoving = false;
+        applyStateToSetup();
+        boardScreen.hidden = true;
+        setupScreen.hidden = false;
+        $('#trap-help-open').hidden = false;
+        phase = 'setup';
+      });
+      $('#board-name').addEventListener('input', () => state.title = $('#board-name').value);
+
+      function setMode(next) {
+        if (mode !== next) labelsVisible = false;
+        mode = next;
+        boardScreen.dataset.mode = mode;
+        if ((next === 'move' || next === 'place') && state.tokens.length === 0) {
+          state.tokens = createStartingTokens();
+          applyTetrahedronPoints(state.trap, true);
+        }
+        [['draw','#mode-draw'],['place','#mode-place'],['move','#mode-move']].forEach(([value,selector]) => {
+          $(selector).setAttribute('aria-pressed', String(value === mode));
+        });
+        canvas.style.pointerEvents = mode === 'move' || phase !== 'edit' ? 'none' : 'auto';
+        board.dataset.mode = mode;
+        const captions = {
+          draw: 'Die Steine sind ausgeblendet. Wähle eine Farbe und kritzele los; beim Wechsel zu „Setzen“ erscheinen sie wieder.',
+          place: 'Die Vorlage mit drei Steinen im Dreieck und einem daneben ist da. Tippe ins Feld, um weitere Kreise zu setzen.',
+          move: 'Ziehe die Steine frei über das Feld. Ihre Beschriftungen bleiben verborgen, solange du sie nicht einblendest.'
+        };
+        if (phase === 'edit') $('#board-caption').textContent = captions[mode];
+        $('#palette-caption').textContent = mode === 'draw' ? 'Farbe fürs Kritzeln' : 'Farbe der Steine';
+        updateLabelsToggle();
+        renderTokens();
+        renderPalette();
+      }
+      $('#mode-draw').addEventListener('click', () => setMode('draw'));
+      $('#mode-place').addEventListener('click', () => setMode('place'));
+      $('#mode-move').addEventListener('click', () => setMode('move'));
+
+      function updateLabelsToggle() {
+        const toggle = $('#labels-toggle');
+        toggle.hidden = mode === 'draw' || state.tokens.length === 0;
+        toggle.textContent = labelsVisible ? 'Texte verbergen' : 'Texte zeigen';
+        toggle.setAttribute('aria-pressed', String(labelsVisible));
+        toggle.setAttribute('aria-label', labelsVisible ? 'Beschriftungen verbergen' : 'Beschriftungen anzeigen');
+      }
+      $('#labels-toggle').addEventListener('click', () => {
+        labelsVisible = !labelsVisible;
+        updateLabelsToggle();
+        renderTokens();
+      });
+
+      function renderPalette() {
+        const row = $('#color-row');
+        row.textContent = '';
+        const activeColor = mode === 'draw' ? drawingColor : selectedColor;
+        COLORS.forEach(color => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'color-chip';
+          button.style.setProperty('--chip', color.value);
+          button.setAttribute('aria-label', `Farbe ${color.name}`);
+          button.setAttribute('aria-pressed', String(activeColor === color.value));
+          button.addEventListener('click', () => {
+            if (mode === 'draw') {
+              drawingColor = color.value;
+              renderPalette();
+              return;
+            }
+            selectedColor = color.value;
+            if ($('#apply-all').checked) {
+              state.tokens.forEach(token => token.color = color.value);
+              renderTokens();
+            } else if (selectedTokenId) {
+              const selected = state.tokens.find(token => token.id === selectedTokenId);
+              if (selected) selected.color = color.value;
+              renderTokens();
+            }
+            renderPalette();
+          });
+          row.append(button);
+        });
+        const label = document.createElement('label');
+        label.className = 'apply-all';
+        label.hidden = mode === 'draw' || state.tokens.length === 0;
+        label.innerHTML = '<input id="apply-all" type="checkbox"> Alle';
+        row.append(label);
+      }
+      renderPalette();
+
+      function renderTokens() {
+        tokenLayer.textContent = '';
+        state.tokens.forEach(token => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'token';
+          button.dataset.id = token.id;
+          button.style.left = `${token.x}%`;
+          button.style.top = `${token.y}%`;
+          button.style.setProperty('--token-color', token.color);
+          if (token.color === 'var(--field)') button.style.color = 'var(--ink)';
+          button.setAttribute('aria-label', labelsVisible && token.label ? `${token.label}` : 'Neutraler Kreis');
+          button.setAttribute('aria-pressed', String(selectedTokenId === token.id));
+          if (selectedTokenId === token.id && (mode === 'move' || mode === 'place') && phase === 'edit') button.classList.add('selected');
+          if (labelsVisible && token.label) button.classList.add('face-up');
+          const span = document.createElement('span');
+          span.className = 'token-label';
+          span.textContent = token.label || '';
+          button.append(span);
+          button.addEventListener('pointerdown', event => startTokenDrag(event, token, button));
+          button.addEventListener('pointermove', moveTokenDrag);
+          button.addEventListener('pointerup', endTokenDrag);
+          button.addEventListener('pointercancel', endTokenDrag);
+          button.addEventListener('click', event => {
+            event.stopPropagation();
+            if (phase === 'edit' && (mode === 'move' || mode === 'place')) {
+              selectedTokenId = token.id;
+              renderTokens();
+            }
+          });
+          tokenLayer.append(button);
+        });
+      }
+      function boardPoint(event) {
+        const rect = board.getBoundingClientRect();
+        return {x: Math.max(3,Math.min(97,(event.clientX-rect.left)/rect.width*100)), y: Math.max(3,Math.min(97,(event.clientY-rect.top)/rect.height*100))};
+      }
+      function addToken(point) {
+        const rect = board.getBoundingClientRect();
+        const diameter = getTokenDiameter(rect.width);
+        if (!tokenPositionIsClear(point.x,point.y,rect,diameter)) {
+          showToast('Hier ist zu wenig Platz. Die Steine dürfen sich nicht überlappen.');
+          return;
+        }
+        const token = {id:newId(), x:point.x, y:point.y, color:selectedColor, label:''};
+        state.tokens.push(token);
+        selectedTokenId = token.id;
+        updateLabelsToggle();
+        renderTokens();
+      }
+      canvas.addEventListener('pointerdown', event => {
+        if (phase !== 'edit') return;
+        const point = boardPoint(event);
+        if (mode === 'place') {
+          event.preventDefault();
+          addToken(point);
+          return;
+        }
+        if (mode === 'draw') {
+          event.preventDefault();
+          canvas.setPointerCapture(event.pointerId);
+          activeStroke = {color:drawingColor, points:[point]};
+          drawingPointerId = event.pointerId;
+          state.strokes.push(activeStroke);
+          drawStrokes();
+        }
+      });
+      canvas.addEventListener('pointermove', event => {
+        if (!activeStroke || drawingPointerId !== event.pointerId) return;
+        activeStroke.points.push(boardPoint(event));
+        drawStrokes();
+      });
+      canvas.addEventListener('pointerup', endStroke);
+      canvas.addEventListener('pointercancel', endStroke);
+      function endStroke(event) {
+        if (!activeStroke || (event && drawingPointerId !== event.pointerId)) return;
+        activeStroke = null;
+        drawingPointerId = null;
+      }
+      function drawStrokes() {
+        const size = board.clientWidth;
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.round(size*dpr);
+        canvas.height = Math.round(size*dpr);
+        ctx.setTransform(dpr,0,0,dpr,0,0);
+        ctx.clearRect(0,0,size,size);
+        ctx.lineWidth = Math.max(2, size*.007);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        state.strokes.forEach(stroke => {
+          if (!stroke.points.length) return;
+          ctx.strokeStyle = resolveColor(stroke.color);
+          ctx.fillStyle = resolveColor(stroke.color);
+          if (stroke.points.length === 1) {
+            const p = stroke.points[0];
+            ctx.beginPath(); ctx.arc(p.x/100*size,p.y/100*size,ctx.lineWidth/2,0,Math.PI*2); ctx.fill();
+          } else {
+            ctx.beginPath();
+            ctx.moveTo(stroke.points[0].x/100*size,stroke.points[0].y/100*size);
+            stroke.points.slice(1).forEach(p => ctx.lineTo(p.x/100*size,p.y/100*size));
+            ctx.stroke();
+          }
+        });
+      }
+      const resizeObserver = new ResizeObserver(() => drawStrokes());
+      resizeObserver.observe(board);
+
+      function startTokenDrag(event, token, element) {
+        if (event.button !== 0) return;
+        if (!(phase === 'edit' && mode === 'move')) return;
+        event.preventDefault();
+        selectedTokenId = token.id;
+        dragging = {id:token.id, pointerId:event.pointerId, boardRect:board.getBoundingClientRect(), element};
+        element.setPointerCapture(event.pointerId);
+        element.classList.add('is-moving','selected');
+      }
+      function getTokenDiameter(boardWidth = board.clientWidth) {
+        const current = tokenLayer.querySelector('.token');
+        return current ? current.getBoundingClientRect().width : Math.max(42,Math.min(57.4,boardWidth*.133));
+      }
+      function tokenPositionIsClear(x,y,rect,diameter,excludeId=null) {
+        const minimum = diameter + 3;
+        return state.tokens.every(other => {
+          if (other.id === excludeId) return true;
+          const dx = (x-other.x)/100*rect.width;
+          const dy = (y-other.y)/100*rect.height;
+          return Math.hypot(dx,dy) >= minimum;
+        });
+      }
+      function separateTokenPosition(token,x,y,rect,diameter) {
+        const minimum = diameter + 3;
+        const minX = diameter/2/rect.width*100;
+        const minY = diameter/2/rect.height*100;
+        const clampX = value => Math.max(minX,Math.min(100-minX,value));
+        const clampY = value => Math.max(minY,Math.min(100-minY,value));
+        let nextX = clampX(x);
+        let nextY = clampY(y);
+        for (let pass=0;pass<Math.max(4,state.tokens.length*2);pass++) {
+          let collision = false;
+          for (const other of state.tokens) {
+            if (other.id === token.id) continue;
+            let dx = (nextX-other.x)/100*rect.width;
+            let dy = (nextY-other.y)/100*rect.height;
+            let distance = Math.hypot(dx,dy);
+            if (distance >= minimum) continue;
+            if (distance < .001) {
+              dx = (token.x-other.x)/100*rect.width;
+              dy = (token.y-other.y)/100*rect.height;
+              distance = Math.hypot(dx,dy);
+              if (distance < .001) { dx = 1; dy = 0; distance = 1; }
+            }
+            nextX = clampX(other.x + dx/distance*minimum/rect.width*100);
+            nextY = clampY(other.y + dy/distance*minimum/rect.height*100);
+            collision = true;
+          }
+          if (!collision) break;
+        }
+        return tokenPositionIsClear(nextX,nextY,rect,diameter,token.id) ? {x:nextX,y:nextY} : {x:token.x,y:token.y};
+      }
+      function moveTokenDrag(event) {
+        if (!dragging || dragging.pointerId !== event.pointerId) return;
+        const token = state.tokens.find(item => item.id === dragging.id);
+        if (!token) return;
+        const rect = dragging.boardRect;
+        const diameter = dragging.element.getBoundingClientRect().width;
+        const next = separateTokenPosition(token,(event.clientX-rect.left)/rect.width*100,(event.clientY-rect.top)/rect.height*100,rect,diameter);
+        token.x = next.x;
+        token.y = next.y;
+        dragging.element.style.left = `${token.x}%`;
+        dragging.element.style.top = `${token.y}%`;
+      }
+      function endTokenDrag(event) {
+        if (!dragging || (event && dragging.pointerId !== event.pointerId)) return;
+        const el = dragging.element;
+        dragging = null;
+        el.classList.remove('is-moving');
+        renderTokens();
+      }
+      $('#reset-field').addEventListener('click', () => {
+        if (!confirm('Kritzelbild und alle Steine entfernen? Beim Wechsel zu „Setzen“ erscheint die Startvorlage wieder.')) return;
+        state.tokens = freshState().tokens;
+        state.strokes = [];
+        selectedTokenId = null;
+        setMode('draw');
+        drawStrokes();
+        renderTokens();
+      });
+
+      function saveBoard() {
+        state.title = ($('#board-name').value || state.title || 'Mein Übungsfeld').trim();
+        state.resumeMoving = mode === 'move';
+        state.updated = Date.now();
+        const boards = getSavedBoards();
+        if (state.id) {
+          const index = boards.findIndex(item => item.id === state.id);
+          if (index >= 0) boards[index] = structuredClone(state);
+          else boards.unshift(structuredClone(state));
+        } else {
+          state.id = newId();
+          boards.unshift(structuredClone(state));
+        }
+        storeBoards(boards);
+        $('#board-name').value = state.title;
+        showToast(state.resumeMoving ? 'Zwischenstand gespeichert. Später kannst du weiterschieben.' : 'Board gespeichert.');
+      }
+      $('#save-board').addEventListener('click', saveBoard);
+      function openBoard(saved) {
+        state = structuredClone(saved);
+        selectedTokenId = null;
+        const resumeMoving = Boolean(state.resumeMoving);
+        phase = 'edit';
+        labelsVisible = false;
+        applyTetrahedronPoints(state.trap, false);
+        applyStateToSetup();
+        setupScreen.hidden = true;
+        boardScreen.hidden = false;
+        $('#trap-help-open').hidden = true;
+        $('#board-name').value = state.title;
+        $('#topic-chip').textContent = state.topic || 'Dein Thema';
+        $('#trap-chip').textContent = trapNames[state.trap] || 'Offen';
+        $('#topic-strip').hidden = false;
+        $('#back-to-setup').hidden = false;
+        $('#board-name').hidden = false;
+        $('#edit-dock').hidden = false;
+        setMode(resumeMoving ? 'move' : 'draw');
+        renderTokens();
+        requestAnimationFrame(drawStrokes);
+      }
+      function renderBoardList() {
+        const list = $('#board-list');
+        list.textContent = '';
+        const boards = getSavedBoards();
+        if (!boards.length) {
+          const empty = document.createElement('p');
+          empty.className = 'board-empty';
+          empty.textContent = 'Noch keine Boards gespeichert. Gestalte ein Feld und tippe auf „Speichern“. Hier kannst du später mehrere Felder ablegen.';
+          list.append(empty);
+          return;
+        }
+        boards.forEach(saved => {
+          const row = document.createElement('div');
+          row.className = 'board-item';
+          const info = document.createElement('div');
+          const title = document.createElement('strong');
+          title.textContent = saved.title || 'Mein Übungsfeld';
+          const meta = document.createElement('small');
+          meta.textContent = `${trapNames[saved.trap] || 'Offen'} · ${saved.tokens?.length || 0} Steine`;
+          info.append(title,meta);
+          const actions = document.createElement('div');
+          actions.className = 'board-item-actions';
+          const open = document.createElement('button');
+          open.type = 'button'; open.textContent = 'Öffnen';
+          open.addEventListener('click', () => { savedBoardsDialog.close(); openBoard(saved); });
+          const editLabels = document.createElement('button');
+          editLabels.type = 'button';
+          editLabels.textContent = 'Beschriftungen';
+          editLabels.setAttribute('aria-label', `Beschriftungen für ${saved.title || 'Mein Übungsfeld'} ändern`);
+          editLabels.disabled = !saved.tokens?.length;
+          editLabels.addEventListener('click', () => openLabelsEditor(saved));
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'icon-button';
+          remove.setAttribute('aria-label', `Board ${saved.title || 'Mein Übungsfeld'} löschen`);
+          remove.title = 'Board löschen';
+          remove.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 14h12l1-14M9 7V4h6v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+          remove.addEventListener('click', () => {
+            storeBoards(getSavedBoards().filter(item => item.id !== saved.id));
+            renderBoardList();
+          });
+          actions.append(open,editLabels,remove);
+          row.append(info,actions);
+          list.append(row);
+        });
+      }
+      function openLabelsEditor(saved) {
+        editingLabelsBoardId = saved.id;
+        editingLabelsTokens = structuredClone(saved.tokens || []);
+        applyTetrahedronPoints(saved.trap, false, editingLabelsTokens);
+        const list = $('#labels-editor-list');
+        list.textContent = '';
+        editingLabelsTokens.forEach((token,index) => {
+          const point = tetrahedronPoints.find(item => item.id === token.vertexId);
+          const row = document.createElement('div');
+          row.className = 'label-editor-row';
+          const swatch = document.createElement('span');
+          swatch.className = 'label-editor-swatch';
+          swatch.style.setProperty('--token-color', token.color || '#fffdf8');
+          const field = document.createElement('label');
+          const description = document.createElement('span');
+          if (token.role === 'wandlungspunkt') description.textContent = 'Wandlungspunkt';
+          else if (point) description.textContent = `Eckpunkt · Grundtext: ${point.label}`;
+          else description.textContent = index < 4 ? `Stein ${index + 1}` : `Zusatzstein ${index - 3}`;
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.maxLength = 60;
+          input.value = token.autoLabel === false ? (token.label || '') : (point?.label || token.label || '');
+          input.dataset.tokenId = token.id;
+          input.setAttribute('aria-label', `${description.textContent}: Beschriftung`);
+          field.append(description,input);
+          row.append(swatch,field);
+          list.append(row);
+        });
+        savedBoardsDialog.close();
+        labelsDialog.showModal();
+      }
+      function returnToBoards() {
+        labelsDialog.close();
+        openBoards();
+      }
+      function saveLabels() {
+        const boards = getSavedBoards();
+        const saved = boards.find(item => item.id === editingLabelsBoardId);
+        if (!saved) {
+          labelsDialog.close();
+          openBoards();
+          return;
+        }
+        saved.tokens = editingLabelsTokens;
+        $('#labels-editor-list').querySelectorAll('input[data-token-id]').forEach(input => {
+          const token = saved.tokens.find(item => item.id === input.dataset.tokenId);
+          if (!token) return;
+          const nextLabel = input.value.trim();
+          const point = tetrahedronPoints.find(item => item.id === token.vertexId);
+          const remainsAutomatic = token.autoLabel !== false && Boolean(point) && nextLabel === point.label;
+          token.label = nextLabel;
+          token.autoLabel = remainsAutomatic;
+          token.faceUp = false;
+        });
+        saved.updated = Date.now();
+        storeBoards(boards);
+        labelsDialog.close();
+        renderBoardList();
+        $('#saved-note').textContent = `Beschriftungen für „${saved.title || 'Mein Übungsfeld'}“ gespeichert.`;
+        savedBoardsDialog.showModal();
+      }
+      function openBoards() { renderBoardList(); savedBoardsDialog.showModal(); }
+      $('#boards-open').addEventListener('click', openBoards);
+      $('#boards-close').addEventListener('click', () => savedBoardsDialog.close());
+      $('#labels-close').addEventListener('click', returnToBoards);
+      $('#labels-cancel').addEventListener('click', returnToBoards);
+      $('#labels-save').addEventListener('click', saveLabels);
+      labelsDialog.addEventListener('cancel', event => {
+        event.preventDefault();
+        returnToBoards();
+      });
+      $('#new-board').addEventListener('click', () => {
+        savedBoardsDialog.close();
+        state = freshState();
+        selectedTokenId = null;
+        applyStateToSetup();
+        $('#topic').value = '';
+        $('#intention').value = '';
+        $('#details').value = '';
+        $('#board-name-setup').value = 'Mein Übungsfeld';
+        phase = 'setup';
+        boardScreen.hidden = true;
+        setupScreen.hidden = false;
+        $('#trap-help-open').hidden = false;
+      });
+
+    })();
+  </script>
+  <script>
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
