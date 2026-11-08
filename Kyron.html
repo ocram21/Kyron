@@ -95,7 +95,7 @@
     }
     .quiet-button:hover { background: var(--hover); }
     .theme-toggle { width: 40px; min-width: 40px; padding: 0; display: grid; place-items: center; }
-    .update-toggle { min-width: 40px; padding: 0 11px; display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
+    .update-toggle { width: 40px; min-width: 40px; padding: 0; display: grid; place-items: center; }
     .theme-toggle svg, .update-toggle svg { width: 18px; height: 18px; flex: 0 0 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
     .update-toggle:disabled { cursor: wait; opacity: .6; }
     .theme-icon-sun { display: none; }
@@ -279,8 +279,6 @@
       .brand span { display: none; }
       .header-actions { gap: 5px; }
       .header-actions .quiet-button:not(.theme-toggle):not(.update-toggle) { padding-left: 9px; padding-right: 9px; font-size: 12px; }
-      .update-toggle { width: 40px; padding: 0; }
-      .update-label { display: none; }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
@@ -299,7 +297,6 @@
       <button class="quiet-button" id="boards-open" type="button">Boards</button>
       <button class="quiet-button update-toggle" id="update-app" type="button" aria-label="App aktualisieren" title="App aktualisieren">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9A7 7 0 0 1 18 6l2 6M4 12l2 6a7 7 0 0 0 12.4-3"/></svg>
-        <span class="update-label">Update</span>
       </button>
       <button class="quiet-button theme-toggle" id="theme-toggle" type="button" aria-pressed="false" aria-label="Dunklen Modus aktivieren" title="Dunklen Modus aktivieren">
         <svg class="theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.6 8.6 0 1 0 20.2 15.4Z"/></svg>
