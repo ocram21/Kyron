@@ -147,16 +147,12 @@
     .privacy-note { margin: 12px 0 0; color: var(--muted); font-size: 12px; text-align: center; }
 
     .board-screen { width: min(100%, 760px); padding: 16px 16px calc(24px + env(safe-area-inset-bottom)); }
-    .board-bar { position: sticky; top: var(--sticky-header-offset); z-index: 6; display: grid; grid-template-areas: "back actions" "name name"; grid-template-columns: auto minmax(0,1fr); justify-content: space-between; gap: 8px; align-items: center; margin: -8px 0 10px; padding: 8px 0; background: var(--paper); }
-    .board-screen[data-mode="move"] #board-name,
-    .board-screen[data-mode="move"] #topic-strip { display: none; }
-    .board-screen[data-mode="move"] .board-bar { grid-template-areas: "back actions"; grid-template-columns: auto minmax(0,1fr); }
+    .board-bar { position: sticky; top: var(--sticky-header-offset); z-index: 6; display: grid; grid-template-areas: "back actions"; grid-template-columns: auto minmax(0,1fr); justify-content: space-between; gap: 8px; align-items: center; margin: -8px 0 10px; padding: 8px 0; background: var(--paper); }
+    .board-screen[data-mode="move"] #topic-strip { visibility: hidden; }
     .board-bar-actions { grid-area: actions; display: flex; justify-content: flex-end; align-items: center; gap: 7px; }
     #back-to-setup { grid-area: back; }
-    #board-name { grid-area: name; }
     .label-toggle { min-height: 42px; padding: 0 10px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--ink); font-size: 12px; font-weight: 650; white-space: nowrap; }
     .label-toggle[aria-pressed="true"] { background: var(--navy); color: white; border-color: var(--navy); }
-    .board-name { min-width: 0; min-height: 42px; padding: 9px 12px; font-size: 14px; font-weight: 650; }
     .save-button { border: 0; background: var(--navy); color: white; border-radius: 999px; min-height: 42px; padding: 0 16px; font-size: 13px; font-weight: 680; }
     .topic-strip { min-height: 28px; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
     .topic-strip strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); font-size: 13px; }
@@ -261,7 +257,7 @@
       .app-header { padding-left: max(24px, calc((100vw - 1080px)/2)); padding-right: max(24px, calc((100vw - 1080px)/2)); }
       .screen { padding-top: 42px; }
       .board-screen { padding-top: 20px; }
-      .board-bar { grid-template-areas: "back name actions"; grid-template-columns: auto minmax(0,1fr) auto; }
+      .board-bar { grid-template-areas: "back actions"; grid-template-columns: auto minmax(0,1fr); }
       .board { width: min(52vw, 520px, 58vh); }
       .tool-dock { border: 1px solid var(--line); border-radius: 16px 16px 0 0; margin-left: 0; margin-right: 0; }
     }
@@ -337,7 +333,6 @@
   <main id="board-screen" class="screen board-screen" hidden>
     <div class="board-bar">
       <button class="quiet-button" id="back-to-setup" type="button">‹ Thema</button>
-      <input class="board-name" id="board-name" type="text" maxlength="60" aria-label="Name dieses Boards">
       <div class="board-bar-actions">
         <button class="label-toggle" id="labels-toggle" type="button" aria-pressed="false" hidden>Texte zeigen</button>
         <button class="save-button" id="save-board" type="button">Speichern</button>
@@ -648,7 +643,6 @@
         $('#trap-help-open').hidden = true;
         $('#edit-dock').hidden = false;
         $('#topic-strip').hidden = false;
-        $('#board-name').value = state.title;
         $('#trap-chip').textContent = trapNames[state.trap] || 'Offen';
         $('#topic-chip').textContent = state.topic;
         canvas.style.pointerEvents = 'auto';
@@ -658,7 +652,6 @@
       });
       $('#back-to-setup').addEventListener('click', () => {
         if (phase !== 'edit') return;
-        state.title = $('#board-name').value.trim() || state.title;
         state.resumeMoving = false;
         applyStateToSetup();
         boardScreen.hidden = true;
@@ -666,13 +659,10 @@
         $('#trap-help-open').hidden = false;
         phase = 'setup';
       });
-      $('#board-name').addEventListener('input', () => state.title = $('#board-name').value);
-
       function setMode(next) {
         if (mode !== next) labelsVisible = false;
         mode = next;
         boardScreen.dataset.mode = mode;
-        $('#board-name').hidden = mode === 'move';
         state.tokens = state.tokens.slice(0,MAX_STONES);
         if ((next === 'move' || next === 'place') && state.tokens.length === 0) {
           state.tokens = createStartingTokens();
@@ -951,7 +941,7 @@
 
       function saveBoard() {
         state.tokens = state.tokens.slice(0,MAX_STONES);
-        state.title = ($('#board-name').value || state.title || 'Mein Übungsfeld').trim();
+        state.title = (state.title || 'Mein Übungsfeld').trim();
         state.resumeMoving = mode === 'move';
         state.updated = Date.now();
         const boards = getSavedBoards();
@@ -964,7 +954,6 @@
           boards.unshift(structuredClone(state));
         }
         storeBoards(boards);
-        $('#board-name').value = state.title;
         showToast(state.resumeMoving ? 'Zwischenstand gespeichert. Später kannst du weiterschieben.' : 'Board gespeichert.');
       }
       $('#save-board').addEventListener('click', saveBoard);
@@ -980,12 +969,10 @@
         setupScreen.hidden = true;
         boardScreen.hidden = false;
         $('#trap-help-open').hidden = true;
-        $('#board-name').value = state.title;
         $('#topic-chip').textContent = state.topic || 'Dein Thema';
         $('#trap-chip').textContent = trapNames[state.trap] || 'Offen';
         $('#topic-strip').hidden = false;
         $('#back-to-setup').hidden = false;
-        $('#board-name').hidden = false;
         $('#edit-dock').hidden = false;
         setMode(resumeMoving ? 'move' : 'draw');
         renderTokens();
