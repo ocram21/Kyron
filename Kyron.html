@@ -151,6 +151,8 @@
     .board-screen { width: min(100%, 760px); padding: 16px 16px calc(24px + env(safe-area-inset-bottom)); }
     .board-bar { position: sticky; top: var(--sticky-header-offset); z-index: 6; display: grid; grid-template-areas: "back actions"; grid-template-columns: auto minmax(0,1fr); justify-content: space-between; gap: 8px; align-items: center; margin: -8px 0 10px; padding: 8px 0; background: var(--paper); }
     .board-screen[data-mode="move"] #topic-strip { visibility: hidden; }
+    .board-screen[data-mode="move"] .palette-caption,
+    .board-screen[data-mode="move"] .color-row { display: none; }
     .board-bar-actions { grid-area: actions; display: flex; justify-content: flex-end; align-items: center; gap: 7px; }
     #back-to-setup { grid-area: back; }
     .label-toggle { min-height: 42px; padding: 0 10px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--ink); font-size: 12px; font-weight: 650; white-space: nowrap; }
