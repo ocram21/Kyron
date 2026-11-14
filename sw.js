@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kyron-shell-v5';
+const CACHE_NAME = 'kyron-shell-v6';
 const APP_SHELL = [
   './',
   './index.html',

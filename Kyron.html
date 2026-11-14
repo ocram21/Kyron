@@ -77,17 +77,15 @@
     .brand { font-size: 16px; font-weight: 740; letter-spacing: -.035em; }
     .brand span { color: var(--muted); font-weight: 500; }
     .header-actions { display: flex; align-items: center; gap: 8px; }
-    .help-cards { display: grid; gap: 12px; }
-    .help-card { padding: 13px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); }
-    .help-card h3 { margin: 0 0 6px; font-size: 15px; }
-    .help-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
-    .help-card p + p { margin-top: 8px; }
-    .help-note { margin: 14px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
-    .help-intro { margin: 0 0 14px; padding: 0 0 14px; border-bottom: 1px solid var(--line); }
-    .help-intro h3, .help-section-title { margin: 0 0 7px; font-size: 15px; line-height: 1.3; }
-    .help-intro p { margin: 0; font-size: 13px; line-height: 1.45; }
-    .help-intro p + p { margin-top: 7px; }
-    .help-section-title { margin-top: 0; }
+    .help-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+    .help-card { padding: 9px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); }
+    .help-card h3 { margin: 0 0 4px; font-size: 13px; }
+    .help-card p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.32; }
+    .help-note { margin: 8px 0 0; color: var(--muted); font-size: 10px; line-height: 1.3; }
+    .help-intro { margin: 0 0 9px; padding: 0 0 9px; border-bottom: 1px solid var(--line); }
+    .help-intro p { margin: 0; font-size: 12px; line-height: 1.35; }
+    .help-intro p + p { margin-top: 5px; }
+    .help-card-section-title { margin: 0 0 5px; font-size: 12px; line-height: 1.2; }
     .quiet-button {
       border: 1px solid var(--line);
       border-radius: 999px;
@@ -237,6 +235,10 @@
     .move-copy { text-align: center; margin: 12px 0 0; color: var(--muted); font-size: 13px; line-height: 1.4; }
 
     dialog { width: min(calc(100% - 28px), 520px); max-height: 82dvh; border: 0; border-radius: 16px; padding: 0; background: var(--paper); color: var(--ink); box-shadow: 0 24px 70px #16241c50; }
+    #trap-help-dialog { max-height: calc(100dvh - 16px); }
+    #trap-help-dialog .dialog-head { padding: 12px 14px 9px; }
+    #trap-help-dialog .dialog-head h2 { font-size: 17px; }
+    #trap-help-dialog .dialog-body { padding: 10px 14px 12px; overflow: hidden; max-height: none; }
     dialog::backdrop { background: #15251e77; }
     .dialog-head { display: flex; justify-content: space-between; align-items: center; padding: 18px 18px 12px; border-bottom: 1px solid var(--line); }
     .dialog-head h2 { margin: 0; }
@@ -300,7 +302,7 @@
   <header class="app-header">
     <div class="brand">Kyron</div>
     <div class="header-actions">
-      <button class="quiet-button" id="trap-help-open" type="button" aria-haspopup="dialog">Hilfe</button>
+      <button class="quiet-button" id="trap-help-open" type="button" aria-haspopup="dialog">Warum?</button>
       <button class="quiet-button" id="boards-open" type="button">Boards</button>
       <button class="quiet-button update-toggle" id="update-app" type="button" aria-label="App aktualisieren" title="App aktualisieren">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9A7 7 0 0 1 18 6l2 6M4 12l2 6a7 7 0 0 0 12.4-3"/></svg>
@@ -397,38 +399,33 @@
     </div>
   </dialog>
   <dialog id="trap-help-dialog" aria-labelledby="trap-help-title">
-    <div class="dialog-head"><h2 id="trap-help-title">Kurze Hilfe</h2><button class="quiet-button" id="trap-help-close" type="button">Schließen</button></div>
+    <div class="dialog-head"><h2 id="trap-help-title">So läuft die Übung</h2><button class="quiet-button" id="trap-help-close" type="button">Schließen</button></div>
     <div class="dialog-body">
       <section class="help-intro" aria-labelledby="help-intro-title">
-        <h3 id="help-intro-title">So funktioniert die Übung</h3>
-        <p><strong>Worum geht’s?</strong> Nimm ein Thema in den Blick, das dich beschäftigt. Wenn du magst, kritzle zuerst dazu und ordne das Thema einer Fallenart zu.</p>
-        <p><strong>Was tust du?</strong> Die vier Steine tragen die Wandlungstexte. Lies sie und schiebe die Steine anschließend frei zueinander.</p>
-        <p><strong>Was kann sich verändern?</strong> Neue Anordnungen können Abstand schaffen, einen anderen Blick auf dein Thema öffnen oder einen nächsten Schritt spürbar machen. Eine richtige Endposition gibt es nicht.</p>
+        <p><strong id="help-intro-title">Worum geht’s?</strong> Nimm ein Thema in den Blick und kritzle, wenn du magst, zuerst dazu.</p>
+        <p><strong>Was tust du?</strong> Ordne es optional einer Fallenart zu. Lies die vier Wandlungstexte und schiebe die Steine frei zueinander.</p>
+        <p><strong>Was kann sich verändern?</strong> Eine neue Anordnung kann Abstand, einen anderen Blick oder einen nächsten Schritt öffnen. Eine richtige Endposition gibt es nicht.</p>
       </section>
-      <h3 class="help-section-title">Fallenarten</h3>
+      <h3 class="help-card-section-title">Fallenarten</h3>
       <div class="help-cards">
         <article class="help-card">
           <h3>Sehnsuchtsfalle</h3>
-          <p>Gefühle, Visionen und Pläne sind da – die Umsetzung ins Handeln fehlt.</p>
-          <p><strong>Wandlungspunkt:</strong> Tu was.</p>
+          <p>Gefühle, Visionen und Pläne sind da, das Handeln fehlt. <strong>Tu was.</strong></p>
         </article>
         <article class="help-card">
           <h3>Ideologiefalle</h3>
-          <p>Ein Konzept wird umgesetzt; Mitgefühl und Empathie gehen unter.</p>
-          <p><strong>Wandlungspunkt:</strong> Fühle hin.</p>
+          <p>Pläne und Kontrollen verdrängen Mitgefühl. <strong>Fühle hin.</strong></p>
         </article>
         <article class="help-card">
           <h3>Konfrontationsfalle</h3>
-          <p>Äußere Einflüsse bestimmen die Reaktion; Souveränität und eigene Entscheidungen fehlen.</p>
-          <p><strong>Wandlungspunkt:</strong> Sei souverän.</p>
+          <p>Äußeres bestimmt die Reaktion, eigene Entscheidungen geraten aus dem Blick. <strong>Sei souverän.</strong></p>
         </article>
         <article class="help-card">
           <h3>Alltagsfalle</h3>
-          <p>Im Trott bleiben Inspiration und Kreativität auf der Strecke.</p>
-          <p><strong>Wandlungspunkt:</strong> Begeistere dich.</p>
+          <p>Alltagstrott bremst Inspiration und Kreativität. <strong>Begeistere dich.</strong></p>
         </article>
       </div>
-      <p class="help-note">Die Beschreibungen sind Orientierung, keine Diagnose. Mehrere können passen – oder keine davon. Kurzfassung aus „Die Fallen fallen“.</p>
+      <p class="help-note">Schieb Steine, keine Diagnosen: ein Denkspiel mit Augenzwinkern, kein Ersatz für ärztlichen oder therapeutischen Rat.</p>
     </div>
   </dialog>
   <div class="toast" id="toast" role="status" hidden></div>
@@ -666,7 +663,6 @@
         phase = 'edit';
         setupScreen.hidden = true;
         boardScreen.hidden = false;
-        $('#trap-help-open').hidden = true;
         $('#edit-dock').hidden = false;
         $('#topic-strip').hidden = false;
         $('#trap-chip').textContent = trapNames[state.trap] || 'Offen';
@@ -682,7 +678,6 @@
         applyStateToSetup();
         boardScreen.hidden = true;
         setupScreen.hidden = false;
-        $('#trap-help-open').hidden = false;
         phase = 'setup';
       });
       function setMode(next) {
@@ -994,7 +989,6 @@
         applyStateToSetup();
         setupScreen.hidden = true;
         boardScreen.hidden = false;
-        $('#trap-help-open').hidden = true;
         $('#topic-chip').textContent = state.topic || 'Dein Thema';
         $('#trap-chip').textContent = trapNames[state.trap] || 'Offen';
         $('#topic-strip').hidden = false;
@@ -1181,7 +1175,6 @@
         phase = 'setup';
         boardScreen.hidden = true;
         setupScreen.hidden = false;
-        $('#trap-help-open').hidden = false;
       });
 
       const latestBoard = getLatestSavedBoard();
