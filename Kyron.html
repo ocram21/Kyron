@@ -601,6 +601,12 @@
           return [];
         } catch { return []; }
       }
+      function getLatestSavedBoard() {
+        return getSavedBoards().filter(board => board && typeof board === 'object').reduce((latest, board) => {
+          if (!latest) return board;
+          return Number(board?.updated || 0) > Number(latest?.updated || 0) ? board : latest;
+        }, null);
+      }
       function storeBoards(boards) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(limitBoardStones(boards).boards));
       }
@@ -963,7 +969,7 @@
         showToast(state.resumeMoving ? 'Zwischenstand gespeichert. Später kannst du weiterschieben.' : 'Board gespeichert.');
       }
       $('#save-board').addEventListener('click', saveBoard);
-      function openBoard(saved) {
+      function openBoard(saved, startInMove = false) {
         state = structuredClone(saved);
         state.tokens = (state.tokens || []).slice(0,MAX_STONES);
         selectedTokenId = null;
@@ -980,7 +986,7 @@
         $('#topic-strip').hidden = false;
         $('#back-to-setup').hidden = false;
         $('#edit-dock').hidden = false;
-        setMode(resumeMoving ? 'move' : 'draw');
+        setMode(startInMove || resumeMoving ? 'move' : 'draw');
         renderTokens();
         requestAnimationFrame(drawStrokes);
       }
@@ -1163,6 +1169,9 @@
         setupScreen.hidden = false;
         $('#trap-help-open').hidden = false;
       });
+
+      const latestBoard = getLatestSavedBoard();
+      if (latestBoard) openBoard(latestBoard, true);
 
     })();
   </script>
